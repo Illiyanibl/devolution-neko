@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.tar.gz
+.DS_Store
+.vscode/
+.idea/
+*.log
