@@ -65,9 +65,10 @@ COPY supervisord/cdp-proxy.conf /etc/neko/supervisord/cdp-proxy.conf
 # Bundle поддерживает native touch protocol (опкоды 0x08-0x0a) и содержит
 # наши патчи: auto-login через ?usr=&pwd=, embed/cast modes, floating
 # keyboard-кнопку (DOM-button = user-gesture для iOS WKWebView).
-RUN rm -rf /var/www/*
-COPY --from=frontend-builder /build/dist/ /var/www/
+RUN rm -rf /var/www/* && chown -R neko:neko /var/www
+COPY --from=frontend-builder --chown=neko:neko /build/dist/ /var/www/
 
-# Возвращаем neko-юзера (как в апстриме). Запуск как root недопустим — neko
-# и chromium ожидают неprivileged пользователя.
-USER neko
+# USER оставляем root — апстрим m1k1o/neko/chromium тоже стартует supervisord
+# от root, чтобы он мог дропать привилегии в `user=neko` директивах
+# supervisord-программ. Иначе supervisord падает с
+# "Error: Can't drop privilege as nonroot user".
