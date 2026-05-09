@@ -30,33 +30,26 @@ FROM ghcr.io/m1k1o/neko/chromium:latest
 # Все патчи требуют root, переключаемся.
 USER root
 
-# Один RUN — один слой. Объединяем chromium-флаги, neko.yaml, apt и cleanup.
-#
-# Chromium-флаги:
-#   --remote-debugging-port / address / origins  → CDP-доступ (через socat-proxy
-#     на :9224, потому что Chromium 146 жёстко биндит DevTools на 127.0.0.1).
-#   --touch-events=enabled                        → форсит TouchEvent API на
-#     странице (без него auto-detect Chromium может игнорировать X11 touch).
-#
-# Neko-конфиг:
+# Patch neko.yaml + установка socat для CDP-proxy.
 #   implicit_hosting: true → первый клиент авто-получает host без UI-кнопки
 #     (с cast=1 в URL UI Neko-фронта скрыт, кнопки взять-host нет).
-#
-# socat — для CDP-proxy supervisord-программы (cdp-proxy.conf копируется ниже).
+#   socat — для CDP-proxy supervisord-программы (cdp-proxy.conf копируется ниже).
 RUN set -eux; \
-    grep -Fq -- "--remote-debugging-port=9223" /etc/neko/supervisord/chromium.conf || \
-        sed -i '/--no-sandbox/i\  --remote-debugging-port=9223' /etc/neko/supervisord/chromium.conf; \
-    grep -Fq -- "--remote-debugging-address=0.0.0.0" /etc/neko/supervisord/chromium.conf || \
-        sed -i '/--no-sandbox/i\  --remote-debugging-address=0.0.0.0' /etc/neko/supervisord/chromium.conf; \
-    grep -Fq -- "--remote-allow-origins=*" /etc/neko/supervisord/chromium.conf || \
-        sed -i '/--no-sandbox/i\  --remote-allow-origins=*' /etc/neko/supervisord/chromium.conf; \
-    grep -Fq -- "--touch-events=enabled" /etc/neko/supervisord/chromium.conf || \
-        sed -i '/--no-sandbox/i\  --touch-events=enabled' /etc/neko/supervisord/chromium.conf; \
     sed -i 's/implicit_hosting: false/implicit_hosting: true/' /etc/neko/neko.yaml; \
     apt-get update -qq; \
     apt-get install -y -qq --no-install-recommends socat; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*
+
+# Wrapper для chromium: парсит NEKO_SCREEN env и запускает chromium с явным
+# --window-size. Без этого --start-maximized периодически игнорируется
+# openbox'ом → окно 10x10 в углу → чёрный canvas пользователю.
+COPY supervisord/start-chromium.sh /usr/local/bin/start-chromium.sh
+RUN chmod +x /usr/local/bin/start-chromium.sh
+
+# Chromium конфиг — наш, не апстримовский. Все флаги вынесены в start-chromium.sh
+# (включая --remote-debugging-*, --touch-events=enabled — наши добавки).
+COPY supervisord/chromium.conf /etc/neko/supervisord/chromium.conf
 
 # CDP socat-proxy: 0.0.0.0:9224 → 127.0.0.1:9223 (где Chromium слушает CDP).
 COPY supervisord/cdp-proxy.conf /etc/neko/supervisord/cdp-proxy.conf
