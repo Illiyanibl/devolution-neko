@@ -31,7 +31,6 @@ exec /usr/bin/chromium \
     --user-data-dir=/home/neko/.config/chromium \
     --no-first-run \
     --start-maximized \
-    --start-fullscreen \
     --bwsi \
     --force-dark-mode \
     --disable-file-system \
