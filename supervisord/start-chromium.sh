@@ -19,10 +19,19 @@ if [ -z "${WIDTH}" ] || [ -z "${HEIGHT}" ] || [ "${WIDTH}" = "${HEIGHT}" ]; then
     HEIGHT=2560
 fi
 
+# Мобильный User-Agent. Раньше эмуляция через CDP (Emulation.setUserAgentOverride
+# + setDeviceMetricsOverride) — но в Chromium 146 + этом neko-image любая внешняя
+# CDP-page-session инвалидируется через ~1ms ("Session with given id not found"
+# на Page.enable), независимо от способа attach (Target.attachToTarget/setAutoAttach,
+# response/event sessionId). См. test/browser-ai-control-plan.md в devolution.
+# Hardcoded UA — все Browser-сессии всегда мобильные, нет use-case для desktop.
+UA="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36"
+
 exec /usr/bin/chromium \
     --remote-debugging-port=9223 \
     --remote-debugging-address=0.0.0.0 \
     --remote-allow-origins=* \
+    --user-agent="${UA}" \
     --touch-events=enabled \
     --no-sandbox \
     --window-position=0,0 \
