@@ -54,9 +54,7 @@ cat > "${CONFIG}" <<EOF
       ]
     },
     "contextOptions": {
-      "viewport": { "width": ${W}, "height": ${H} },
-      "isMobile": true,
-      "hasTouch": true,
+      "viewport": null,
       "userAgent": "${UA}"
     }
   }
