@@ -1,0 +1,31 @@
+devolution-neko
+Copyright 2025-2026 Illiyanibl
+
+This product is a derivative work and includes/depends on the following
+Apache-2.0 licensed software:
+
+  - neko (m1k1o/neko) — Copyright the neko authors.
+    https://github.com/m1k1o/neko  (Apache License 2.0)
+    Base container image (ghcr.io/m1k1o/neko/chromium) is extended here.
+
+  - neko-client / @demodesk/neko — Copyright the neko authors.
+    Bundled frontend is built from the demodesk neko client (Apache License 2.0).
+
+  - Playwright and @playwright/mcp — Copyright Microsoft Corporation.
+    https://github.com/microsoft/playwright  (Apache License 2.0)
+    Used as the AI browser-control plane (§AI-control).
+
+Modifications made in this image relative to the upstream m1k1o/neko base:
+  - Replaced the bundled frontend with a demodesk-based build (native touch,
+    auto-login, embed/cast modes).
+  - Patched neko.yaml (implicit_hosting).
+  - §AI-control: disabled neko's built-in Chromium launch; the shared browser is
+    now launched and driven by @playwright/mcp (Playwright launch/pipe transport);
+    added Node.js, @playwright/mcp, a bundled open-source Chromium, and supervisord
+    programs (browser-mcp, browser-keeper). Removed the CDP socat proxy.
+
+Chromium is used under its own (BSD-style) open-source license; the browser binary
+installed here is Playwright's bundled open-source Chromium (not Google Chrome).
+
+This NOTICE file is provided in accordance with section 4(d) of the Apache
+License, Version 2.0. See the LICENSE file for the full license text.
