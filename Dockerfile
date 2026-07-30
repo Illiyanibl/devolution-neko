@@ -69,7 +69,9 @@ RUN set -eux; \
 COPY supervisord/start-browser-mcp.sh  /usr/local/bin/start-browser-mcp.sh
 COPY supervisord/browser-keeper.cjs    /usr/local/bin/browser-keeper.cjs
 COPY supervisord/window-fit.sh         /usr/local/bin/window-fit.sh
-RUN chmod +x /usr/local/bin/start-browser-mcp.sh /usr/local/bin/window-fit.sh
+COPY supervisord/browser-watchdog.sh   /usr/local/bin/browser-watchdog.sh
+RUN chmod +x /usr/local/bin/start-browser-mcp.sh /usr/local/bin/window-fit.sh \
+             /usr/local/bin/browser-watchdog.sh
 
 # supervisord: chromium.conf ПЕРЕОПРЕДЕЛяет апстрим (отключает штатный Chromium,
 # оставляет openbox); browser-mcp.conf поднимает control-plane; browser-keeper.conf
@@ -79,6 +81,7 @@ COPY supervisord/chromium.conf        /etc/neko/supervisord/chromium.conf
 COPY supervisord/browser-mcp.conf     /etc/neko/supervisord/browser-mcp.conf
 COPY supervisord/browser-keeper.conf  /etc/neko/supervisord/browser-keeper.conf
 COPY supervisord/window-fit.conf      /etc/neko/supervisord/window-fit.conf
+COPY supervisord/browser-watchdog.conf /etc/neko/supervisord/browser-watchdog.conf
 
 # Подменяем legacy m1k1o-frontend на собранный demodesk-bundle.
 # Bundle поддерживает native touch protocol (опкоды 0x08-0x0a) и содержит
