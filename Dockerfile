@@ -35,11 +35,13 @@ FROM ghcr.io/m1k1o/neko/chromium:latest
 # Все патчи требуют root, переключаемся.
 USER root
 
-# Patch neko.yaml.
-#   implicit_hosting: true → первый клиент авто-получает host без UI-кнопки
-#     (с cast=1 в URL UI Neko-фронта скрыт, кнопки взять-host нет).
-RUN set -eux; \
-    sed -i 's/implicit_hosting: false/implicit_hosting: true/' /etc/neko/neko.yaml
+# implicit_hosting: первый клиент авто-получает host без UI-кнопки (при cast=1 в
+#   URL UI neko-фронта скрыт, кнопки «взять host» нет).
+# Задаём через ENV, а не патчем файла: в свежих base-образах neko файла
+# /etc/neko/neko.yaml больше НЕТ (конфиг перешёл на флаги/env) → прежний
+# `sed -i ... /etc/neko/neko.yaml` падал exit 2 и ронял сборку. Флаг
+# `--session.implicit_hosting` ↔ env NEKO_SESSION_IMPLICIT_HOSTING.
+ENV NEKO_SESSION_IMPLICIT_HOSTING=true
 
 # --- §AI-control: Node + @playwright/mcp + bundled Chromium ---------------
 # Node.js 20 (nodesource) — рантайм control-plane @playwright/mcp.
