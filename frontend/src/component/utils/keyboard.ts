@@ -8,6 +8,9 @@ export interface KeyboardInterface {
   onkeydown?: (keysym: number) => boolean
   onkeyup?: (keysym: number) => void
   release: (keysym: number) => void
+  // release ALL held keys (modifiers incl.) — нужно сбрасывать залипший Shift,
+  // когда iOS уводит ввод в composition/IME и keyup модификатора не приходит.
+  reset: () => void
   listenTo: (element: Element | Document) => void
   removeListener: () => void
 }

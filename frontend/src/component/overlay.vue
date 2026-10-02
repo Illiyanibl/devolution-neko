@@ -4,6 +4,10 @@
     <textarea
       ref="textarea"
       class="neko-overlay"
+      autocapitalize="none"
+      autocorrect="off"
+      autocomplete="off"
+      spellcheck="false"
       :style="{ cursor }"
       v-model="textInput"
       @click.stop.prevent="control.emit('overlay.click', $event)"
@@ -153,12 +157,41 @@
       let ctrlKey = 0
       let noKeyUp = {} as Record<number, boolean>
 
+      // keysym «печатный» (даёт глиф), если guacamole закодировал его прямо из
+      // кодпойнта: печатный Latin-1 либо Unicode-плоскость (0x01000000|cp).
+      // Функциональные/модификаторные клавиши лежат в 0xFE00–0xFFFF и НЕ печатны.
+      const isTypableKeysym = (ks: number): boolean =>
+        (ks >= 0x20 && ks <= 0x7e) ||
+        (ks >= 0xa0 && ks <= 0xff) ||
+        (ks >= 0x01000100 && ks <= 0x0110ffff)
+      const XK_Shift_L = 0xffe1
+      const XK_Shift_R = 0xffe2
+
       // Initialize Keyboard
       this.keyboard = NewKeyboard()
       this.keyboard.onkeydown = (key: number) => {
         key = keySymsRemap(key)
 
         if (!this.isControling) {
+          noKeyUp[key] = true
+          return true
+        }
+
+        // --- Touch: печатные символы идут через textarea, НЕ через keysym ---
+        // На soft-клавиатуре iOS отдаёт уже готовый, верно-регистровый глиф через
+        // input-событие textarea (textInput → control.paste), а её key-события
+        // ненадёжны: неявный Shift (которым iOS делает заглавную) не имеет
+        // надёжного keyup — эмуляция keyDown здесь зажимает Shift на сервере и
+        // либо глотает paste («ничего»), либо даёт строчную. Поэтому когда
+        // реального аккорда НЕТ (ctrlKey == 0), НЕ шлём ни печатные клавиши, ни
+        // одиночный Shift: return true (не preventDefault) → глиф доходит до
+        // textarea и его печатает paste-путь. Непечатные (Backspace/Enter/Tab/
+        // стрелки/Esc) и настоящие аккорды (Ctrl/Cmd+C) по-прежнему идут keysym.
+        if (
+          this.hasMobileKeyboard &&
+          ctrlKey == 0 &&
+          (key == XK_Shift_L || key == XK_Shift_R || isTypableKeysym(key))
+        ) {
           noKeyUp[key] = true
           return true
         }
@@ -555,6 +588,10 @@
       if (this.textInput == '') return
       this.control.paste(this.textInput)
       this.textInput = ''
+      // На iOS символ после Shift приходит через composition/IME (этот paste-путь),
+      // а keyup Shift НЕ фиксируется guacamole → модификатор залипает на сервере.
+      // Сбрасываем все удержанные клавиши после ввода текста.
+      this.keyboard?.reset()
     }
 
     onWheel(e: WheelEvent) {
@@ -929,6 +966,7 @@
     @Watch('isControling')
     onControlChange(isControling: boolean) {
       this.keyboardModifiers = null
+      this.keyboard?.reset()   // смена контроля → снять залипшие клавиши/модификаторы
 
       if (isControling && this.reqMouseDown) {
         this.updateKeyboardModifiers(this.reqMouseDown)
@@ -993,6 +1031,7 @@
       this.$emit('mobileKeyboardOpen', false)
       window.visualViewport?.removeEventListener('resize', this.onVisualViewportResize)
       this._textarea.blur()
+      this.keyboard?.reset()   // закрыли мобильную клаву → отпустить всё удержанное
     }
 
     // visual viewport resize event is fired when keyboard is opened or closed
